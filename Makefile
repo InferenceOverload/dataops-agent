@@ -1,4 +1,4 @@
-.PHONY: help install install-dev install-all test lint format clean run docker-build docker-run
+.PHONY: help install install-dev install-all corporate-setup test lint format clean run docker-build docker-run
 
 help:
 	@echo "DataOps Agent - Development Commands"
@@ -7,6 +7,7 @@ help:
 	@echo "  make install          Install production dependencies with uv"
 	@echo "  make install-dev      Install with dev dependencies"
 	@echo "  make install-all      Install all optional dependencies"
+	@echo "  make corporate-setup  Interactive setup for corporate environments"
 	@echo ""
 	@echo "Development:"
 	@echo "  make test            Run tests with pytest"
@@ -35,6 +36,11 @@ install-dev:
 
 install-all:
 	uv pip install -e ".[all]"
+
+# Corporate environment setup
+corporate-setup:
+	@echo "Running corporate environment setup..."
+	@bash scripts/corporate-setup.sh
 
 test:
 	uv run pytest tests/ -v

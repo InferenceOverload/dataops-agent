@@ -297,6 +297,36 @@ uv run pre-commit autoupdate
 uv run pre-commit run --all-files
 ```
 
+### SSL/TLS Certificate Errors (Corporate Environments)
+
+If you encounter SSL certificate errors like:
+```
+SSLError: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed
+TLS handshake failed
+```
+
+This is common in corporate environments with SSL interception. **See the [Corporate Setup Guide](CORPORATE_SETUP.md) for detailed solutions.**
+
+**Quick fix for corporate environments:**
+
+```bash
+# Set SSL certificate path
+export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt  # Linux
+# OR
+export SSL_CERT_FILE=/etc/ssl/cert.pem  # macOS
+# OR
+export SSL_CERT_FILE=/path/to/corporate/ca-bundle.crt  # Corporate cert
+
+# Also set for requests library
+export REQUESTS_CA_BUNDLE=$SSL_CERT_FILE
+
+# Now run UV sync
+uv sync
+```
+
+For comprehensive corporate environment setup including proxy configuration, PyPI mirrors, and AWS Bedrock integration, see:
+- **[CORPORATE_SETUP.md](CORPORATE_SETUP.md)** - Complete corporate deployment guide
+
 ---
 
 ## Project Structure with UV
