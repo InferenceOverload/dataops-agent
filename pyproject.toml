@@ -79,6 +79,7 @@ observability = [
     "opentelemetry-instrumentation-fastapi>=0.41b0",
     "prometheus-client>=0.18.0",
     "structlog>=23.1.0",
+    "mlflow>=2.14.0",  # MLflow tracing for LangGraph workflows
 ]
 
 # All optional dependencies

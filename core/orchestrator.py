@@ -12,6 +12,7 @@ Graph structure:
     START → intent_detection → workflow_invocation → response_formatting → END
 """
 
+import time
 from typing import TypedDict
 from langgraph.graph import StateGraph, START, END
 from dotenv import load_dotenv
@@ -20,6 +21,14 @@ from infrastructure.llm.llm_factory import create_llm
 
 # Load environment variables
 load_dotenv()
+
+# Initialize MLflow for LangGraph tracing (optional dependency)
+try:
+    from infrastructure.observability import initialize_mlflow
+    initialize_mlflow()
+except ImportError:
+    # MLflow not installed - workflows will run without tracing
+    pass
 
 
 # Orchestrator State Schema
@@ -321,8 +330,16 @@ def workflow_invocation_node(state: OrchestratorState) -> dict:
     # - All loops complete
     # - Workflow reaches END state
     # Only then does .invoke() return
+
+    # Track execution time for metrics
+    start_time = time.time()
+
     try:
+        # Execute workflow (MLflow autolog will automatically trace this)
         result = workflow.invoke(workflow_input)
+
+        # Calculate execution time
+        execution_time = time.time() - start_time
 
         # Transform: Workflow Result → Orchestrator State
         # Handle different output structures for different workflows
@@ -347,17 +364,48 @@ def workflow_invocation_node(state: OrchestratorState) -> dict:
             "metadata": {
                 "iterations": iterations,
                 "artifacts_count": len(artifacts),
-                "messages_count": len(result.get("messages", []))
+                "messages_count": len(result.get("messages", [])),
+                "execution_time_seconds": execution_time
             }
         }
 
+        # Log additional metrics to MLflow if available
+        try:
+            import mlflow
+            if mlflow.active_run():
+                mlflow.log_metric("execution_time_seconds", execution_time)
+                mlflow.log_metric("iterations", iterations)
+                mlflow.log_metric("artifacts_count", len(artifacts))
+                mlflow.log_param("workflow_name", workflow_name)
+                mlflow.log_param("user_query", user_query[:200])  # Truncate long queries
+                mlflow.set_tag("success", "true")
+        except (ImportError, Exception):
+            # MLflow not available or logging failed - continue without it
+            pass
+
     except Exception as e:
+        execution_time = time.time() - start_time
         workflow_result = {
             "success": False,
             "error": str(e),
             "output": "",
-            "workflow_type": workflow_name
+            "workflow_type": workflow_name,
+            "metadata": {
+                "execution_time_seconds": execution_time
+            }
         }
+
+        # Log failure to MLflow if available
+        try:
+            import mlflow
+            if mlflow.active_run():
+                mlflow.log_metric("execution_time_seconds", execution_time)
+                mlflow.log_param("workflow_name", workflow_name)
+                mlflow.set_tag("success", "false")
+                mlflow.set_tag("error", str(e)[:200])  # Truncate long errors
+        except (ImportError, Exception):
+            # MLflow not available or logging failed - continue without it
+            pass
 
     return {
         "workflow_result": workflow_result

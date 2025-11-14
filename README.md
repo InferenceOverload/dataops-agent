@@ -62,6 +62,14 @@ User Query → Intent Detection → Parameter Extraction
 - Comprehensive documentation and examples
 - Type hints and error handling throughout
 
+### 📊 MLflow Integration for Workflow Tracing
+- **Automatic Tracing**: Zero-code tracing of all LangGraph workflows
+- **Experiment Tracking**: Organized tracking with parameters, metrics, and artifacts
+- **Performance Monitoring**: Execution time, iterations, and resource usage
+- **Self-Hosted Alternative**: Complete replacement for LangSmith
+- **S3 Artifact Storage**: Optional S3 backend for production deployments
+- See [MLflow Integration Guide](docs/MLFLOW_INTEGRATION.md) for details
+
 ---
 
 ## 🚀 Quick Start
@@ -84,6 +92,11 @@ uv sync
 # Or with pip
 pip install -e .
 
+# Optional: Install with MLflow tracing and observability tools
+pip install -e ".[observability]"
+# OR with uv:
+uv sync --extra observability
+
 # Configure environment
 cp .env.example .env
 # Edit .env and add your credentials:
@@ -91,6 +104,7 @@ cp .env.example .env
 # - OR configure AWS Bedrock for corporate deployment
 # - AWS_S3_BUCKET (optional, for S3 tools)
 # - AWS_DYNAMODB_TABLE (optional, for DynamoDB tools)
+# - MLFLOW_TRACKING_URI (optional, for workflow tracing)
 ```
 
 **Corporate Environments:** If you encounter SSL/TLS certificate errors or proxy issues, see the [Corporate Setup Guide](CORPORATE_SETUP.md) for detailed configuration instructions.
@@ -132,6 +146,8 @@ dataops-agent/
 ├── infrastructure/             # Centralized infrastructure tools
 │   ├── config/                # AWS configuration management
 │   │   └── aws_config.py      # Configuration priority system
+│   ├── observability/         # MLflow tracing and monitoring
+│   │   └── mlflow_config.py   # MLflow configuration and integration
 │   ├── tools/                 # LangChain tools
 │   │   ├── s3_tools.py        # S3 operations (read, write, list, exists)
 │   │   └── dynamodb_tools.py  # DynamoDB operations (put, get, query, scan)
