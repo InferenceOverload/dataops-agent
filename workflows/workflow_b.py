@@ -15,10 +15,9 @@ Architecture:
 
 from typing import TypedDict, Literal
 from langgraph.graph import StateGraph, START, END
-from langchain_anthropic import ChatAnthropic
-import os
 from dotenv import load_dotenv
 from core.base_workflow import BaseWorkflow, WorkflowMetadata
+from infrastructure.llm.llm_factory import create_llm
 
 # Load environment variables
 load_dotenv()
@@ -37,11 +36,7 @@ class SupervisorWorkflow(BaseWorkflow):
 
     def __init__(self):
         """Initialize supervisor workflow"""
-        self.llm = ChatAnthropic(
-            model="claude-sonnet-4-20250514",
-            api_key=os.getenv("ANTHROPIC_API_KEY"),
-            temperature=0.7
-        )
+        self.llm = create_llm()
 
     def get_metadata(self) -> WorkflowMetadata:
         """Return workflow metadata for registry discovery"""

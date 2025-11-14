@@ -11,11 +11,10 @@ Architecture: Iterative analysis with artifact storage
 
 from langgraph.graph import StateGraph, START, END
 from typing import TypedDict, List, Dict, Any
-from langchain_anthropic import ChatAnthropic
-import os
 from dotenv import load_dotenv
 from core.base_workflow import BaseWorkflow, WorkflowMetadata, WorkflowInputParameter
 from infrastructure.tools import get_s3_tools
+from infrastructure.llm.llm_factory import create_llm
 
 # Load environment variables
 load_dotenv()
@@ -53,11 +52,7 @@ class JILParserWorkflow(BaseWorkflow):
 
         # Initialize LLM with S3 tools for file access
         self.s3_tools = get_s3_tools()
-        self.llm = ChatAnthropic(
-            model="claude-sonnet-4-20250514",
-            api_key=os.getenv("ANTHROPIC_API_KEY"),
-            temperature=0
-        )
+        self.llm = create_llm(temperature=0)
 
         # LLM with tools bound for agent operations
         self.llm_with_tools = self.llm.bind_tools(self.s3_tools)
