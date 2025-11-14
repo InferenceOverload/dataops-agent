@@ -33,7 +33,8 @@ class TestWorkflowRegistry:
 
     def test_workflow_registry_entries_are_invocable(self):
         """Verify all registry entries can be invoked"""
-        for name, workflow in WORKFLOW_REGISTRY.items():
+        for name in WORKFLOW_REGISTRY.list_workflows():
+            workflow = WORKFLOW_REGISTRY.get_workflow(name)
             assert hasattr(workflow, "invoke"), f"Workflow {name} is not invocable"
 
 

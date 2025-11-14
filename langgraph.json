@@ -2,9 +2,10 @@
   "dependencies": ["."],
   "graphs": {
     "orchestrator": "./core/orchestrator.py:orchestrator_graph",
-    "workflow_a": "./workflows/workflow_a.py:workflow_graph",
-    "workflow_b": "./workflows/workflow_b.py:workflow_graph",
-    "workflow_c": "./workflows/workflow_c.py:workflow_graph"
+    "simple": "./workflows/workflow_a.py:workflow_graph",
+    "supervisor": "./workflows/workflow_b.py:workflow_graph",
+    "iterative": "./workflows/workflow_c.py:workflow_graph",
+    "jil_parser": "./workflows/jil_parser/workflow.py:workflow_graph"
   },
   "env": ".env"
 }

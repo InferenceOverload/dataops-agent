@@ -13,6 +13,7 @@ from langgraph.graph import StateGraph, START, END
 from langchain_anthropic import ChatAnthropic
 import os
 from dotenv import load_dotenv
+from core.base_workflow import BaseWorkflow, WorkflowMetadata
 
 # Load environment variables
 load_dotenv()
@@ -24,55 +25,84 @@ class WorkflowAState(TypedDict):
     output: str     # Result from LLM
 
 
-# Initialize Claude
-llm = ChatAnthropic(
-    model="claude-sonnet-4-20250514",
-    api_key=os.getenv("ANTHROPIC_API_KEY"),
-    temperature=0.7
-)
+class SimpleAgentWorkflow(BaseWorkflow):
+    """Simple single-agent workflow for basic queries"""
 
+    def __init__(self):
+        """Initialize simple agent workflow"""
+        self.llm = ChatAnthropic(
+            model="claude-sonnet-4-20250514",
+            api_key=os.getenv("ANTHROPIC_API_KEY"),
+            temperature=0.7
+        )
 
-def agent_node(state: WorkflowAState) -> dict:
-    """
-    Simple agent node - calls Claude and returns result.
+    def get_metadata(self) -> WorkflowMetadata:
+        """Return workflow metadata for registry discovery"""
+        return WorkflowMetadata(
+            name="simple",
+            description="Handles basic queries with a single LLM call",
+            capabilities=[
+                "Answer general questions",
+                "Provide explanations",
+                "Simple information retrieval"
+            ],
+            example_queries=[
+                "What is LangGraph?",
+                "Explain data engineering",
+                "What are the benefits of Snowflake?"
+            ],
+            category="general",
+            version="1.0.0"
+        )
 
-    Args:
-        state: Current workflow state
+    def get_compiled_graph(self):
+        """Build and return compiled graph"""
 
-    Returns:
-        dict: State update with output
-    """
-    user_input = state["input"]
+        def agent_node(state: WorkflowAState) -> dict:
+            """
+            Simple agent node - calls Claude and returns result.
 
-    # Call Claude
-    prompt = f"""You are a helpful assistant. Answer the following question concisely:
+            Args:
+                state: Current workflow state
+
+            Returns:
+                dict: State update with output
+            """
+            user_input = state["input"]
+
+            # Call Claude
+            prompt = f"""You are a helpful assistant. Answer the following question concisely:
 
 Question: {user_input}
 
 Provide a clear, direct answer."""
 
-    response = llm.invoke(prompt)
+            response = self.llm.invoke(prompt)
 
-    # Extract content from response
-    output = response.content if hasattr(response, 'content') else str(response)
+            # Extract content from response
+            output = response.content if hasattr(response, 'content') else str(response)
 
-    return {
-        "output": output
-    }
+            return {
+                "output": output
+            }
+
+        # Build Graph
+        workflow_builder = StateGraph(WorkflowAState)
+
+        # Add nodes
+        workflow_builder.add_node("agent", agent_node)
+
+        # Add edges
+        workflow_builder.add_edge(START, "agent")
+        workflow_builder.add_edge("agent", END)
+
+        # Compile and return
+        return workflow_builder.compile()
 
 
-# Build Graph
-workflow_builder = StateGraph(WorkflowAState)
-
-# Add nodes
-workflow_builder.add_node("agent", agent_node)
-
-# Add edges
-workflow_builder.add_edge(START, "agent")
-workflow_builder.add_edge("agent", END)
-
-# Compile graph - MUST be compiled for invocation
-workflow_graph = workflow_builder.compile()
+# For backwards compatibility - create instance and expose compiled graph
+_workflow_instance = SimpleAgentWorkflow()
+workflow_graph = _workflow_instance.get_compiled_graph()
 
 
 # For testing directly
