@@ -2,7 +2,7 @@
 
 **Intelligent Multi-Agent System for Data Engineering Workflows**
 
-A production-grade orchestrator that dynamically routes data engineering tasks to specialized AI agent workflows using LangGraph and LangChain.
+A production-grade orchestration system that dynamically routes data engineering tasks to specialized AI agent workflows using LangGraph and LangChain, with built-in AWS infrastructure tools and intelligent parameter gathering.
 
 ---
 
@@ -10,24 +10,57 @@ A production-grade orchestrator that dynamically routes data engineering tasks t
 
 DataOps Agent is an intelligent orchestration system that:
 - **Understands natural language queries** about data engineering tasks
-- **Routes to specialized workflows** (simple queries, complex analysis, iterative refinement)
-- **Manages multi-agent coordination** using supervisor patterns
-- **Provides production-ready infrastructure** for deployment at scale
+- **Intelligently extracts required parameters** and asks for missing information
+- **Routes to specialized workflows** based on capability matching
+- **Provides centralized AWS tools** for S3, DynamoDB, and more
+- **Manages multi-agent coordination** using supervisor and iterative patterns
+- **Supports contract-based workflow development** for easy integration
 
 ### Architecture
 
 ```
-User Query → Main Orchestrator
-                ↓
-    [Intent Classification]
-         ↙    ↓    ↘
-      Meta  Simple  Complex
-       ↓      ↓       ↓
-    Help  Single  Multi-Agent
-           Agent   Workflows
-              ↓       ↓
-           [Results]
+User Query → Intent Detection → Parameter Extraction
+                                      ↓
+                           [Missing Parameters?]
+                              ↙           ↘
+                            Yes            No
+                             ↓              ↓
+                    Ask User for Info   Workflow Invocation
+                                              ↓
+                                    Specialized Workflows
+                                    (Simple, Supervisor,
+                                     Iterative, JIL Parser)
+                                              ↓
+                                      Response Formatting
 ```
+
+---
+
+## ✨ Key Features
+
+### 🎯 Contract-Based Parameter System
+- Workflows declare their input requirements explicitly
+- Orchestrator intelligently extracts parameters from natural language
+- Automatically prompts for missing required information
+- Type-safe parameter validation with Pydantic
+
+### 🔧 Centralized Infrastructure Tools
+- **S3 Tools**: Read, write, list, check existence
+- **DynamoDB Tools**: Put, get, query, scan
+- **LangChain Native**: BaseTool implementations for agent use
+- **Configuration Priority**: Explicit → Overrides → Environment → Defaults
+
+### 🤖 Intelligent Workflow Routing
+- Auto-discovery of workflows from metadata
+- Capability-based intent detection
+- Meta-query handling for system introspection
+- Graceful handling of unknown intents
+
+### 📦 Production-Ready Infrastructure
+- Environment-based configuration
+- IAM role support (no hardcoded credentials)
+- Comprehensive documentation and examples
+- Type hints and error handling throughout
 
 ---
 
@@ -36,37 +69,41 @@ User Query → Main Orchestrator
 ### Prerequisites
 - Python 3.10+
 - Anthropic API key ([Get one here](https://console.anthropic.com/))
+- (Optional) AWS credentials for S3/DynamoDB tools
 
 ### Installation
 
 ```bash
 # Clone the repository
+git clone https://github.com/InferenceOverload/dataops-agent.git
 cd dataops-agent
 
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# Install with uv (recommended)
+uv sync
 
-# Install dependencies
-pip install -r requirements.txt
+# Or with pip
+pip install -e .
 
 # Configure environment
 cp .env.example .env
-# Edit .env and add your ANTHROPIC_API_KEY
+# Edit .env and add your credentials:
+# - ANTHROPIC_API_KEY (required)
+# - AWS_S3_BUCKET (optional, for S3 tools)
+# - AWS_DYNAMODB_TABLE (optional, for DynamoDB tools)
 ```
 
 ### Run Locally
 
 ```bash
-# Test individual workflows
-python workflows/workflow_a.py
-
-# Run full orchestrator
-python main.py
-
 # Start LangGraph dev server
 langgraph dev
 # Open http://localhost:2024/docs
+
+# Test orchestrator directly
+python core/orchestrator.py
+
+# Test specific workflow
+python workflows/jil_parser/workflow.py
 ```
 
 ---
@@ -75,34 +112,41 @@ langgraph dev
 
 ```
 dataops-agent/
-├── src/                      # Production source code (future)
-│   ├── api/                 # REST API layer
-│   ├── services/            # Business logic
-│   ├── models/              # Data models
-│   ├── core/                # Core orchestrator
-│   ├── workflows/           # Workflow definitions
-│   └── utils/               # Utilities
+├── core/                       # Core orchestrator system
+│   ├── base_workflow.py       # BaseWorkflow interface & contracts
+│   ├── orchestrator.py        # Main orchestrator with parameter extraction
+│   └── workflow_registry.py   # Auto-discovery & registration
 │
-├── infrastructure/          # Infrastructure as Code
-│   ├── terraform/          # Terraform configs
-│   ├── docker/             # Dockerfiles
-│   ├── kubernetes/         # K8s manifests
-│   └── scripts/            # Deployment scripts
+├── workflows/                  # Workflow implementations
+│   ├── workflow_a.py          # Simple single-agent workflow
+│   ├── workflow_b.py          # Supervisor multi-agent pattern
+│   ├── workflow_c.py          # Iterative refinement pattern
+│   └── jil_parser/            # JIL dependency parser (example)
+│       ├── workflow.py        # Workflow implementation
+│       ├── config.yaml        # Workflow-specific config
+│       └── README.md          # Usage documentation
 │
-├── core/                    # Current POC orchestrator
-│   ├── orchestrator.py     # Main orchestrator LangGraph
-│   └── workflow_registry.py # Workflow registry
+├── infrastructure/             # Centralized infrastructure tools
+│   ├── config/                # AWS configuration management
+│   │   └── aws_config.py      # Configuration priority system
+│   ├── tools/                 # LangChain tools
+│   │   ├── s3_tools.py        # S3 operations (read, write, list, exists)
+│   │   └── dynamodb_tools.py  # DynamoDB operations (put, get, query, scan)
+│   ├── storage/               # Base utilities (reference implementations)
+│   │   ├── s3_operations.py
+│   │   └── dynamodb_operations.py
+│   └── llm/                   # LLM utilities
+│       └── bedrock_client.py  # Bedrock LLM client
 │
-├── workflows/               # Current POC workflows
-│   ├── workflow_a.py       # Simple agent
-│   ├── workflow_b.py       # Supervisor pattern
-│   └── workflow_c.py       # Iterative loop
+├── tests/                      # Test suite
+│   ├── test_base_workflow.py
+│   ├── test_workflow_registry.py
+│   └── test_orchestrator.py
 │
-├── tests/                   # Test suite
-├── docs/                    # Documentation
-├── .claude/                 # Claude Code configuration
-│   └── skills/             # Development skills
-│       └── langgraph-builder.md
+├── docs/                       # Documentation
+│   ├── architecture.md        # System architecture
+│   ├── tools-usage-guide.md   # Infrastructure tools guide
+│   └── LANGGRAPH_PATTERNS.md  # LangGraph patterns
 │
 └── [config files]
 ```
@@ -118,12 +162,20 @@ dataops-agent/
 
 **Pattern:** Single LLM call → Response
 
+**Required Inputs:** None (uses query directly)
+
+---
+
 ### 2. Supervisor Pattern (`workflow_b`)
 **Use Case:** Complex tasks requiring research + analysis
 
 **Example:** "Research cloud computing and analyze its benefits"
 
 **Pattern:** Supervisor coordinates multiple specialist agents
+
+**Required Inputs:** None (uses query directly)
+
+---
 
 ### 3. Iterative Refinement (`workflow_c`)
 **Use Case:** Progressive improvement, multi-iteration analysis
@@ -132,72 +184,149 @@ dataops-agent/
 
 **Pattern:** Loop with artifacts, refinement over 3 iterations
 
-### 4. Meta Queries
+**Required Inputs:** None (uses query directly)
+
+---
+
+### 4. JIL Parser (`jil_parser`)
+**Use Case:** Analyze Autosys JIL files for job dependencies
+
+**Example:** "Parse JIL dependencies for BATCH_PROCESSING job in s3://my-bucket/jobs/batch.jil"
+
+**Pattern:** Iterative analysis with S3 integration
+
+**Required Inputs:**
+- `file_path` (required): Path to JIL file (supports s3:// URIs)
+- `current_job` (required): Job name to analyze
+- `max_iterations` (optional, default: 3): Max analysis iterations
+
+**Features:**
+- Auto-detects S3 paths and uses S3 tools
+- LLM-powered dependency discovery
+- Structured output with upstream/downstream jobs
+
+---
+
+### 5. Meta Queries
 **Use Case:** Questions about the system itself
 
-**Example:** "What workflows do you have?"
+**Example:** "What can you do?"
 
-**Pattern:** Direct system response, no workflow invocation
+**Pattern:** Direct system response with capability listing
 
 ---
 
-## 🎓 Using the LangGraph Builder Skill
+## 🔧 Using Infrastructure Tools
 
-The project includes a Claude Code skill for LangGraph development:
+### S3 Tools
 
-```bash
-# Skills are automatically loaded from .claude/skills/
-# To use: Simply work with LangGraph code in this repo
+```python
+from infrastructure.tools import get_s3_tools
+
+# Get all S3 tools
+tools = get_s3_tools()
+
+# Use with LangChain agent
+from langchain_anthropic import ChatAnthropic
+llm = ChatAnthropic(model="claude-sonnet-4-20250514")
+llm_with_tools = llm.bind_tools(tools)
+
+# LLM can now call S3 operations
+response = llm_with_tools.invoke("Read the file from s3://my-bucket/data.txt")
 ```
 
-The skill provides:
-- LangGraph patterns and best practices
-- Multi-agent architecture guidance
-- Production code templates
-- Error handling patterns
-- Testing strategies
+### DynamoDB Tools
+
+```python
+from infrastructure.tools.dynamodb_tools import DynamoDBPutTool
+import json
+
+# Track workflow state
+put_tool = DynamoDBPutTool()
+put_tool._run(
+    item=json.dumps({"job_id": "BATCH_001", "status": "completed"}),
+    table="jobs"  # Optional if AWS_DYNAMODB_TABLE is set
+)
+```
+
+### Configuration
+
+Set environment variables in `.env`:
+
+```bash
+# AWS Configuration
+AWS_REGION=us-east-1
+AWS_S3_BUCKET=my-default-bucket
+AWS_DYNAMODB_TABLE=my-default-table
+
+# AWS Credentials (optional if using IAM roles)
+AWS_ACCESS_KEY_ID=your_key
+AWS_SECRET_ACCESS_KEY=your_secret
+```
+
+See [Tools Usage Guide](docs/tools-usage-guide.md) for comprehensive documentation.
 
 ---
 
-## 🏗️ Production Roadmap
+## 🏗️ Building Custom Workflows
 
-### Phase 1: Infrastructure (Current)
-- [x] POC orchestrator working
-- [x] Meta-query handling
-- [x] Infrastructure directories
-- [x] LangGraph skill
-- [ ] Docker containerization
-- [ ] Terraform for AWS/GCP
-- [ ] Kubernetes deployment
+### Step 1: Create Workflow Structure
 
-### Phase 2: API Layer
-- [ ] FastAPI REST endpoints
-- [ ] WebSocket streaming
-- [ ] Authentication (API keys, JWT)
-- [ ] Rate limiting
-- [ ] Request validation
+```bash
+mkdir -p workflows/my_workflow
+touch workflows/my_workflow/__init__.py
+touch workflows/my_workflow/workflow.py
+```
 
-### Phase 3: Persistence
-- [ ] PostgreSQL for workflow definitions
-- [ ] Redis for caching
-- [ ] S3 for artifacts
-- [ ] Conversation history
-- [ ] Checkpointing for long-running tasks
+### Step 2: Implement BaseWorkflow
 
-### Phase 4: Observability
-- [ ] Structured logging (JSON)
-- [ ] Metrics (Prometheus)
-- [ ] Tracing (OpenTelemetry)
-- [ ] Dashboards (Grafana)
-- [ ] Alerting
+```python
+from core.base_workflow import BaseWorkflow, WorkflowMetadata, WorkflowInputParameter
+from langgraph.graph import StateGraph, START, END
 
-### Phase 5: Advanced Features
-- [ ] Hot-reload workflows
-- [ ] Workflow versioning
-- [ ] Multi-tenancy
-- [ ] Human-in-the-loop approvals
-- [ ] Async execution
-- [ ] Workflow chaining
+class MyWorkflow(BaseWorkflow):
+    def get_metadata(self) -> WorkflowMetadata:
+        return WorkflowMetadata(
+            name="my_workflow",
+            description="What this workflow does",
+            capabilities=["capability 1", "capability 2"],
+            example_queries=["Example user query"],
+            category="category",
+            required_inputs=[
+                WorkflowInputParameter(
+                    name="param_name",
+                    description="What this parameter is for",
+                    type="string",
+                    required=True,
+                    example="example_value",
+                    prompt="What should I ask the user?"
+                )
+            ]
+        )
+
+    def get_compiled_graph(self):
+        # Build your LangGraph
+        graph = StateGraph(MyState)
+        # ... add nodes and edges
+        return graph.compile()
+```
+
+### Step 3: Auto-Discovery
+
+The registry automatically discovers workflows on startup. No registration needed!
+
+### Step 4: Use Infrastructure Tools (Optional)
+
+```python
+from infrastructure.tools import get_s3_tools, get_dynamodb_tools
+
+class MyWorkflow(BaseWorkflow):
+    def __init__(self):
+        self.s3_tools = get_s3_tools()
+        # Use in your workflow nodes
+```
+
+See workflow development guide in [CLAUDE.md](.claude/CLAUDE.md) for details.
 
 ---
 
@@ -207,45 +336,83 @@ The skill provides:
 # Run all tests
 pytest tests/ -v
 
-# Test specific workflows
-pytest tests/test_workflows.py -v
+# Test workflows
+pytest tests/test_workflow_registry.py -v
 
-# Integration tests
+# Test orchestrator
 pytest tests/test_orchestrator.py -v
 
-# Test meta-queries
-python test_meta_query.py
+# Test infrastructure tools
+pytest tests/test_infrastructure.py -v
+
+# Test specific workflow
+python workflows/jil_parser/workflow.py
 ```
 
 ---
 
-## 📊 Monitoring & Observability
+## 📊 Example Queries
 
-### Current (POC)
-- Console logging
-- Basic error handling
-- Execution time tracking
+### Meta Queries
+```
+"What can you do?"
+"What workflows are available?"
+"Show me your capabilities"
+```
 
-### Planned (Production)
-- Structured logging to CloudWatch/DataDog
-- Prometheus metrics
-- OpenTelemetry tracing
-- LLM token usage tracking
-- Performance dashboards
+### Simple Queries (No Parameters Needed)
+```
+"What is data engineering?"
+"Explain ETL processes"
+"What is LangGraph?"
+```
+
+### Complex Queries (Auto-Detected Intent)
+```
+"Research modern data stack tools and analyze their tradeoffs"
+"Iteratively develop a data governance strategy"
+```
+
+### JIL Parser (Parameter Extraction)
+```
+# Missing parameters - orchestrator will ask
+"Parse JIL dependencies"
+
+# Complete query - runs immediately
+"Parse JIL dependencies for BATCH_PROCESSING job in s3://my-bucket/jobs/batch.jil"
+
+# Partial query - orchestrator asks for missing info
+"Analyze job ETL_MASTER in /data/jobs.jil"
+```
 
 ---
 
 ## 🔒 Security
 
-### Current
-- API keys in `.env` (local only)
+### Environment Variables
+- All sensitive data in `.env` (gitignored)
+- `.env.example` provides template
+- Never commit actual credentials
 
-### Planned
-- AWS Secrets Manager / GCP Secret Manager
-- IAM roles for services
-- Network policies in K8s
-- Rate limiting per tenant
-- Input validation and sanitization
+### AWS Credentials
+- Supports IAM roles (no credentials needed in AWS)
+- Falls back to environment variables for local dev
+- Priority: IAM role → env vars → error
+
+### Best Practices
+- Use IAM roles in production
+- Rotate credentials regularly
+- Limit S3 bucket permissions
+- Use DynamoDB table-level permissions
+
+---
+
+## 📖 Documentation
+
+- [Architecture](docs/architecture.md) - System design and patterns
+- [Tools Usage Guide](docs/tools-usage-guide.md) - Infrastructure tools reference
+- [LangGraph Patterns](docs/LANGGRAPH_PATTERNS.md) - Multi-agent patterns
+- [Development Guide](.claude/CLAUDE.md) - Workflow development tasks
 
 ---
 
@@ -256,34 +423,44 @@ python test_meta_query.py
 langgraph dev
 ```
 
-### Docker (Planned)
+### Docker (Coming Soon)
 ```bash
 docker build -t dataops-agent .
 docker run -p 8000:8000 dataops-agent
 ```
 
-### Kubernetes (Planned)
-```bash
-kubectl apply -f infrastructure/kubernetes/
-```
-
-### Terraform (Planned)
-```bash
-cd infrastructure/terraform
-terraform init
-terraform plan
-terraform apply
-```
+### Production Checklist
+- [ ] Set environment variables
+- [ ] Configure AWS credentials (IAM roles recommended)
+- [ ] Set S3 bucket and DynamoDB table
+- [ ] Enable LangSmith tracing (optional)
+- [ ] Configure monitoring and logging
 
 ---
 
-## 📖 Documentation
+## 🛣️ Roadmap
 
-- [Setup Guide](SETUP.md) - Detailed setup instructions
-- [Architecture](docs/architecture.md) - System architecture
-- [Research Notes](docs/research_notes.md) - LangGraph research
-- [Improvements](docs/IMPROVEMENTS.md) - Recent enhancements
-- [LangGraph Skill](.claude/skills/langgraph-builder.md) - Development guide
+### ✅ Completed
+- [x] Contract-based parameter system
+- [x] Centralized infrastructure tools (S3, DynamoDB)
+- [x] Auto-discovery workflow registry
+- [x] Intelligent parameter extraction
+- [x] JIL parser with S3 integration
+- [x] Comprehensive documentation
+
+### 🚧 In Progress
+- [ ] Additional workflow examples
+- [ ] Enhanced error handling
+- [ ] Async tool support
+
+### 📋 Planned
+- [ ] More infrastructure tools (RDS, Bedrock, etc.)
+- [ ] Workflow versioning
+- [ ] Human-in-the-loop approvals
+- [ ] Monitoring and observability
+- [ ] API layer (FastAPI)
+- [ ] Docker containerization
+- [ ] Kubernetes deployment
 
 ---
 
@@ -291,16 +468,19 @@ terraform apply
 
 This project uses:
 - **LangGraph** for multi-agent orchestration
-- **LangChain** for LLM integrations
+- **LangChain** for LLM integrations and tools
 - **Anthropic Claude** as the LLM provider
+- **boto3** for AWS integration
+- **Pydantic** for type safety
 - **Python 3.10+** with type hints
 - **pytest** for testing
 
 Development workflow:
 1. Create feature branch
-2. Add tests
-3. Ensure tests pass
-4. Submit PR
+2. Implement changes
+3. Add tests
+4. Update documentation
+5. Submit PR
 
 ---
 
@@ -312,39 +492,22 @@ MIT License - See LICENSE file
 
 ## 🔗 Resources
 
-- [LangGraph Docs](https://langchain-ai.github.io/langgraph/)
-- [LangChain Docs](https://python.langchain.com/)
+- [LangGraph Documentation](https://langchain-ai.github.io/langgraph/)
+- [LangChain Documentation](https://python.langchain.com/)
 - [Anthropic Claude](https://www.anthropic.com/claude)
+- [boto3 Documentation](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html)
 
 ---
 
-## 💡 Example Queries
+## 🙏 Acknowledgments
 
-### Meta Queries
-```
-"What workflows do you have?"
-"What can you do?"
-"Help"
-```
-
-### Simple Queries
-```
-"What is data engineering?"
-"Explain ETL processes"
-```
-
-### Complex Queries
-```
-"Research modern data stack tools and analyze their tradeoffs"
-"Investigate data quality frameworks and compare approaches"
-```
-
-### Iterative Queries
-```
-"Iteratively develop a comprehensive data governance strategy"
-"Progressively refine a data architecture design"
-```
+Built with:
+- LangGraph and LangChain by LangChain AI
+- Claude by Anthropic
+- AWS SDK (boto3)
 
 ---
 
 **Built for Data Engineers, by Data Engineers** 🚀
+
+*Intelligent orchestration meets infrastructure automation*
