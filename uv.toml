@@ -1,0 +1,74 @@
+# UV Package Manager Configuration
+# This file configures UV behavior for both personal and corporate environments
+
+# ============================================================================
+# Index Configuration
+# ============================================================================
+
+# Default PyPI index (can be overridden with environment variables)
+# For corporate environments, uncomment and set to your internal PyPI mirror
+# [[index]]
+# url = "https://pypi.org/simple"
+# default = true
+
+# Example corporate PyPI mirror configuration:
+# [[index]]
+# url = "https://your-corporate-pypi.company.com/simple"
+# default = true
+
+# ============================================================================
+# SSL/TLS Configuration
+# ============================================================================
+
+# SSL certificate verification
+# Set to false only in controlled corporate environments with MITM proxies
+# verify-ssl = true
+
+# Custom CA bundle path (for corporate SSL interception)
+# Uncomment and set path to your corporate CA certificate bundle
+# native-tls = true
+# ca-certificates = "/path/to/corporate/ca-bundle.crt"
+
+# Alternative: Use system certificates (recommended for corporate environments)
+# This will respect SSL_CERT_FILE and REQUESTS_CA_BUNDLE environment variables
+# native-tls = true
+
+# ============================================================================
+# Cache Configuration
+# ============================================================================
+
+# Cache directory (optional - UV uses system default if not specified)
+# cache-dir = ".uv-cache"
+
+# ============================================================================
+# Network Configuration
+# ============================================================================
+
+# HTTP/HTTPS proxy configuration
+# Uncomment and configure for corporate proxy environments
+# http-proxy = "http://proxy.company.com:8080"
+# https-proxy = "http://proxy.company.com:8080"
+
+# Retry configuration for corporate networks
+# retries = 3
+# timeout = 60
+
+# ============================================================================
+# Environment-Specific Overrides
+# ============================================================================
+
+# Personal/Development Environment
+[environments.personal]
+verify-ssl = true
+native-tls = true
+
+# Corporate Environment
+# Uncomment and customize based on your corporate requirements
+# [environments.corporate]
+# verify-ssl = true
+# native-tls = true
+# ca-certificates = "/etc/ssl/certs/corporate-ca-bundle.crt"
+# http-proxy = "http://proxy.company.com:8080"
+# https-proxy = "http://proxy.company.com:8080"
+# retries = 5
+# timeout = 120

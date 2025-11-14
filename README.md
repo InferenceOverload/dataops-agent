@@ -87,10 +87,13 @@ pip install -e .
 # Configure environment
 cp .env.example .env
 # Edit .env and add your credentials:
-# - ANTHROPIC_API_KEY (required)
+# - ANTHROPIC_API_KEY (required for personal use)
+# - OR configure AWS Bedrock for corporate deployment
 # - AWS_S3_BUCKET (optional, for S3 tools)
 # - AWS_DYNAMODB_TABLE (optional, for DynamoDB tools)
 ```
+
+**Corporate Environments:** If you encounter SSL/TLS certificate errors or proxy issues, see the [Corporate Setup Guide](CORPORATE_SETUP.md) for detailed configuration instructions.
 
 ### Run Locally
 
