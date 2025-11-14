@@ -31,6 +31,8 @@ dependencies = [
     "pydantic-settings>=2.0.0",
     "typing-extensions>=4.8.0",
     "boto3>=1.28.0",  # AWS SDK for S3, DynamoDB infrastructure tools
+    "pyyaml>=6.0.0",  # YAML configuration support
+    "click>=8.1.0",  # CLI framework
 ]
 
 [project.optional-dependencies]
@@ -93,6 +95,7 @@ Issues = "https://github.com/dataops-agent/dataops-agent/issues"
 [project.scripts]
 dataops = "src.cli:main"
 dataops-server = "src.api.server:run"
+dataops-workflow = "cli.workflow_cli:main"
 
 [build-system]
 requires = ["hatchling"]

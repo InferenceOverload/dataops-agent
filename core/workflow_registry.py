@@ -15,6 +15,7 @@ import importlib
 import os
 from pathlib import Path
 from typing import Dict, List, Optional, Any
+import yaml
 from core.base_workflow import BaseWorkflow, WorkflowMetadata
 
 
@@ -71,6 +72,20 @@ class WorkflowRegistry:
             if not workflow_file.exists():
                 # Try loading from direct .py files (like workflow_a.py)
                 continue
+
+            # Check if workflow is enabled in config
+            config_file = workflow_dir / "config.yaml"
+            if config_file.exists():
+                try:
+                    with open(config_file) as f:
+                        config = yaml.safe_load(f) or {}
+                        is_enabled = config.get("workflow", {}).get("enabled", True)
+                        if not is_enabled:
+                            print(f"⊘ Skipping disabled workflow: {workflow_dir.name}")
+                            continue
+                except Exception as e:
+                    print(f"⚠ Warning: Could not read config for {workflow_dir.name}: {e}")
+                    # Continue anyway - assume enabled if config can't be read
 
             try:
                 # Import module dynamically

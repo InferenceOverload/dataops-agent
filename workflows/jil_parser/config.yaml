@@ -1,23 +1,16 @@
-# JIL Parser Workflow Configuration
-
-# Analysis settings
+workflow:
+  enabled: true
 analysis:
   max_iterations: 10
   default_iterations: 3
-
-# S3 settings (optional)
 s3:
   enabled: false
-  bucket: ""
-  prefix: "jil-analysis/"
-
-# LLM settings
+  bucket: ''
+  prefix: jil-analysis/
 llm:
-  model: "claude-sonnet-4-20250514"
+  model: claude-sonnet-4-20250514
   temperature: 0
   max_tokens: 4096
-
-# Artifact storage
 artifacts:
   store_intermediate: true
-  output_format: "json"
+  output_format: json
