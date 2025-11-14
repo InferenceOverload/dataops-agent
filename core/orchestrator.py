@@ -14,10 +14,9 @@ Graph structure:
 
 from typing import TypedDict
 from langgraph.graph import StateGraph, START, END
-from langchain_anthropic import ChatAnthropic
-import os
 from dotenv import load_dotenv
 from core.workflow_registry import WORKFLOW_REGISTRY, list_workflows, get_workflow_description
+from infrastructure.llm.llm_factory import create_llm
 
 # Load environment variables
 load_dotenv()
@@ -34,12 +33,8 @@ class OrchestratorState(TypedDict):
     final_response: str       # Formatted response for user
 
 
-# Initialize Claude
-llm = ChatAnthropic(
-    model="claude-sonnet-4-20250514",
-    api_key=os.getenv("ANTHROPIC_API_KEY"),
-    temperature=0.7
-)
+# Initialize LLM using factory (supports both Anthropic API and AWS Bedrock)
+llm = create_llm()
 
 
 def intent_detection_node(state: OrchestratorState) -> dict:

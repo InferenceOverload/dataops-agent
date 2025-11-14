@@ -20,10 +20,10 @@ Usage Examples:
 
 4. Use with LangChain agents:
     from langchain.agents import initialize_agent, AgentType
-    from langchain_anthropic import ChatAnthropic
+    from infrastructure.llm.llm_factory import create_llm
     from infrastructure.tools import get_all_tools
 
-    llm = ChatAnthropic(model="claude-sonnet-4-20250514")
+    llm = create_llm()
     tools = get_all_tools()
     agent = initialize_agent(tools, llm, agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION)
 """
