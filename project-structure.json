@@ -1,0 +1,557 @@
+{
+  "project": {
+    "name": "dataops-agent",
+    "description": "Intelligent Multi-Agent System for Data Engineering Workflows",
+    "version": "0.1.0",
+    "type": "production-ready-foundation"
+  },
+  "structure": {
+    "root": {
+      "description": "Project root directory",
+      "path": "/",
+      "files": {
+        "pyproject.toml": {
+          "purpose": "Modern Python project configuration",
+          "contains": [
+            "Project metadata and dependencies",
+            "Development tools configuration (ruff, black, mypy, pytest)",
+            "Optional dependency groups (dev, api, db, aws, observability)",
+            "Build system configuration"
+          ],
+          "replaces": "requirements.txt"
+        },
+        "Makefile": {
+          "purpose": "Developer workflow automation",
+          "commands": {
+            "setup": ["install", "install-dev", "install-all", "pre-commit"],
+            "development": ["test", "test-cov", "lint", "format"],
+            "running": ["run", "dev", "server"],
+            "docker": ["docker-build", "docker-run"],
+            "utilities": ["clean", "help"]
+          }
+        },
+        "README.md": {
+          "purpose": "Main project documentation",
+          "sections": ["Overview", "Quick Start", "Workflows", "Production Roadmap", "Usage Examples"]
+        },
+        "SETUP_UV.md": {
+          "purpose": "UV package manager setup guide",
+          "audience": "New developers"
+        },
+        "langgraph.json": {
+          "purpose": "LangGraph server configuration",
+          "defines": ["Available graphs", "Environment settings", "Dependencies"]
+        },
+        ".python-version": {
+          "purpose": "Python version pinning",
+          "value": "3.11"
+        },
+        ".pre-commit-config.yaml": {
+          "purpose": "Git pre-commit hooks configuration",
+          "hooks": ["trailing-whitespace", "yaml/json validation", "ruff", "black", "isort", "mypy"]
+        },
+        ".gitignore": {
+          "purpose": "Git ignore patterns",
+          "includes": ["Python artifacts", "Virtual environments", "UV cache", "IDE files", "Test coverage", "Logs", "Secrets"]
+        },
+        ".env.example": {
+          "purpose": "Environment variables template",
+          "variables": ["ANTHROPIC_API_KEY"]
+        },
+        "main.py": {
+          "purpose": "CLI entry point for testing",
+          "runs": "All workflows and orchestrator tests"
+        },
+        "test_meta_query.py": {
+          "purpose": "Meta-query functionality test",
+          "tests": "System self-awareness features"
+        }
+      }
+    },
+    "src": {
+      "description": "Production source code (future migration target)",
+      "path": "/src/",
+      "status": "planned",
+      "subdirectories": {
+        "api": {
+          "purpose": "REST API layer",
+          "planned_contents": ["FastAPI endpoints", "WebSocket handlers", "Request/response models", "Authentication middleware"]
+        },
+        "services": {
+          "purpose": "Business logic layer",
+          "planned_contents": ["Workflow orchestration service", "Intent detection service", "Registry management", "State management"]
+        },
+        "models": {
+          "purpose": "Data models and schemas",
+          "planned_contents": ["Pydantic models", "Database models", "State schemas", "Response contracts"]
+        },
+        "core": {
+          "purpose": "Core orchestrator (production version)",
+          "planned_contents": ["Orchestrator graph", "Registry", "State management", "Error handling"]
+        },
+        "workflows": {
+          "purpose": "Workflow definitions (production version)",
+          "planned_contents": ["Workflow graphs", "Node functions", "State schemas", "Workflow metadata"]
+        },
+        "utils": {
+          "purpose": "Shared utilities",
+          "planned_contents": ["Logging helpers", "Configuration", "Constants", "Helper functions"]
+        }
+      }
+    },
+    "core": {
+      "description": "Current POC orchestrator implementation",
+      "path": "/core/",
+      "status": "active",
+      "files": {
+        "orchestrator.py": {
+          "purpose": "Main orchestrator LangGraph",
+          "contains": [
+            "OrchestratorState schema",
+            "Intent detection node",
+            "Meta-query handler node",
+            "Workflow invocation node",
+            "Response formatting node",
+            "Conditional routing logic",
+            "Compiled orchestrator graph"
+          ],
+          "pattern": "LangGraph with conditional edges"
+        },
+        "workflow_registry.py": {
+          "purpose": "Workflow registry",
+          "contains": [
+            "WORKFLOW_REGISTRY dict mapping names to compiled graphs",
+            "get_workflow() helper",
+            "list_workflows() helper",
+            "get_workflow_description() helper"
+          ],
+          "storage": "In-memory Python dict (production will use database)"
+        },
+        "__init__.py": {
+          "purpose": "Python package marker",
+          "exports": ["orchestrator_graph", "WORKFLOW_REGISTRY"]
+        }
+      }
+    },
+    "workflows": {
+      "description": "Workflow implementations",
+      "path": "/workflows/",
+      "status": "active",
+      "files": {
+        "workflow_a.py": {
+          "purpose": "Simple single-agent workflow",
+          "pattern": "START → agent_node → END",
+          "use_case": "Basic queries, single-step tasks",
+          "example": "What is LangGraph?",
+          "state_schema": {
+            "input": "str - Query to process",
+            "output": "str - Result from LLM"
+          }
+        },
+        "workflow_b.py": {
+          "purpose": "Supervisor pattern workflow",
+          "pattern": "Supervisor coordinates worker1 and worker2 with conditional routing",
+          "use_case": "Complex tasks requiring multiple specialists",
+          "example": "Research and analyze cloud computing",
+          "state_schema": {
+            "input": "str - Original query",
+            "messages": "list[str] - Message history",
+            "next_agent": "str - Next agent to invoke",
+            "output": "str - Final result"
+          },
+          "agents": ["supervisor", "worker1 (researcher)", "worker2 (analyst)"]
+        },
+        "workflow_c.py": {
+          "purpose": "Iterative loop workflow",
+          "pattern": "Process node loops 3 times with conditional edges",
+          "use_case": "Progressive refinement, multi-iteration analysis",
+          "example": "Iteratively develop analysis",
+          "state_schema": {
+            "input": "str - Original query",
+            "iterations": "int - Current iteration count",
+            "max_iterations": "int - Max loops (default 3)",
+            "current_result": "str - Latest result",
+            "artifacts": "list[dict] - Stored artifacts",
+            "output": "str - Final compiled result"
+          }
+        },
+        "__init__.py": {
+          "purpose": "Python package marker",
+          "exports": ["workflow_a", "workflow_b", "workflow_c"]
+        }
+      }
+    },
+    "infrastructure": {
+      "description": "Infrastructure as Code",
+      "path": "/infrastructure/",
+      "status": "planned",
+      "subdirectories": {
+        "terraform": {
+          "purpose": "Terraform configurations for cloud infrastructure",
+          "planned_contents": [
+            "AWS/GCP resource definitions",
+            "VPC, subnets, security groups",
+            "ECS/EKS cluster setup",
+            "RDS/DynamoDB tables",
+            "S3 buckets for artifacts",
+            "IAM roles and policies",
+            "CloudWatch/monitoring setup"
+          ]
+        },
+        "docker": {
+          "purpose": "Docker configurations",
+          "planned_contents": [
+            "Dockerfile for application",
+            "docker-compose.yml for local dev",
+            "Multi-stage builds",
+            "Health check configurations"
+          ]
+        },
+        "kubernetes": {
+          "purpose": "Kubernetes manifests",
+          "planned_contents": [
+            "Deployment manifests",
+            "Service definitions",
+            "ConfigMaps and Secrets",
+            "Ingress rules",
+            "HPA (Horizontal Pod Autoscaler)",
+            "ServiceMonitor for Prometheus"
+          ]
+        },
+        "scripts": {
+          "purpose": "Deployment and utility scripts",
+          "planned_contents": [
+            "CI/CD pipeline scripts",
+            "Database migration scripts",
+            "Backup/restore scripts",
+            "Monitoring setup"
+          ]
+        }
+      }
+    },
+    "tests": {
+      "description": "Test suite",
+      "path": "/tests/",
+      "status": "active",
+      "files": {
+        "test_workflows.py": {
+          "purpose": "Unit tests for individual workflows",
+          "tests": [
+            "Workflow A basic invocation",
+            "Workflow B supervisor coordination",
+            "Workflow C iteration logic",
+            "Contract compliance"
+          ],
+          "markers": ["unit"]
+        },
+        "test_orchestrator.py": {
+          "purpose": "Integration tests for orchestrator",
+          "tests": [
+            "Workflow registry",
+            "Intent detection",
+            "Meta-query handling",
+            "State transformation",
+            "Response formatting",
+            "Full integration"
+          ],
+          "markers": ["integration"]
+        },
+        "__init__.py": {
+          "purpose": "Python package marker"
+        }
+      },
+      "configuration": {
+        "framework": "pytest",
+        "coverage_target": "src/",
+        "markers": ["unit", "integration", "e2e", "slow"]
+      }
+    },
+    "docs": {
+      "description": "Project documentation",
+      "path": "/docs/",
+      "status": "active",
+      "files": {
+        "research_notes.md": {
+          "purpose": "LangGraph research and findings",
+          "sections": [
+            "Subgraphs and hierarchical teams",
+            "Compiled graphs as callable objects",
+            "State management across graphs",
+            "Multi-agent patterns",
+            "Key insights and questions answered"
+          ]
+        },
+        "architecture.md": {
+          "purpose": "System architecture documentation",
+          "sections": [
+            "Architecture pattern",
+            "Component details",
+            "State transformation",
+            "Execution model",
+            "Testing strategy"
+          ]
+        },
+        "IMPROVEMENTS.md": {
+          "purpose": "Recent improvements and enhancements",
+          "documents": "Meta-query handling feature"
+        },
+        "UV_MIGRATION.md": {
+          "purpose": "UV package manager migration guide",
+          "documents": [
+            "What changed",
+            "Speed comparisons",
+            "Code quality tools",
+            "Migration checklist"
+          ]
+        }
+      }
+    },
+    ".claude": {
+      "description": "Claude Code configuration",
+      "path": "/.claude/",
+      "status": "active",
+      "subdirectories": {
+        "skills": {
+          "purpose": "Development skills and patterns",
+          "files": {
+            "langgraph-builder.md": {
+              "purpose": "LangGraph development expertise",
+              "provides": [
+                "State management patterns",
+                "Graph construction best practices",
+                "Multi-agent patterns (supervisor, iterative, etc.)",
+                "Subgraph composition",
+                "Error handling patterns",
+                "Testing strategies",
+                "Production checklist",
+                "Code quality standards"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "scripts": {
+      "description": "Utility scripts",
+      "path": "/scripts/",
+      "status": "active",
+      "files": {
+        "setup.sh": {
+          "purpose": "Automated project setup",
+          "executable": true,
+          "features": [
+            "UV installation check",
+            "Virtual environment creation",
+            "Dependency installation (with profile selection)",
+            "Environment file setup",
+            "Pre-commit hooks installation",
+            "Test execution"
+          ]
+        }
+      }
+    }
+  },
+  "dependency_groups": {
+    "production": {
+      "category": "Core runtime dependencies",
+      "packages": [
+        "langchain>=0.1.0",
+        "langgraph>=0.2.0",
+        "langgraph-cli[inmem]>=0.1.0",
+        "langchain-anthropic>=0.1.0",
+        "python-dotenv>=1.0.0",
+        "pydantic>=2.0.0",
+        "pydantic-settings>=2.0.0",
+        "typing-extensions>=4.8.0"
+      ]
+    },
+    "dev": {
+      "category": "Development and testing",
+      "packages": [
+        "pytest>=7.4.0",
+        "pytest-asyncio>=0.21.0",
+        "pytest-cov>=4.1.0",
+        "pytest-mock>=3.11.0",
+        "ruff>=0.1.0",
+        "mypy>=1.5.0",
+        "black>=23.0.0",
+        "isort>=5.12.0",
+        "pre-commit>=3.3.0"
+      ]
+    },
+    "api": {
+      "category": "API layer (planned)",
+      "packages": [
+        "fastapi>=0.104.0",
+        "uvicorn[standard]>=0.24.0",
+        "python-multipart>=0.0.6",
+        "pyjwt>=2.8.0",
+        "python-jose[cryptography]>=3.3.0"
+      ]
+    },
+    "db": {
+      "category": "Database support (planned)",
+      "packages": [
+        "sqlalchemy>=2.0.0",
+        "alembic>=1.12.0",
+        "asyncpg>=0.29.0",
+        "psycopg2-binary>=2.9.9",
+        "redis>=5.0.0"
+      ]
+    },
+    "aws": {
+      "category": "AWS integration (planned)",
+      "packages": [
+        "boto3>=1.28.0",
+        "aioboto3>=12.0.0"
+      ]
+    },
+    "observability": {
+      "category": "Monitoring and observability (planned)",
+      "packages": [
+        "opentelemetry-api>=1.20.0",
+        "opentelemetry-sdk>=1.20.0",
+        "opentelemetry-instrumentation-fastapi>=0.41b0",
+        "prometheus-client>=0.18.0",
+        "structlog>=23.1.0"
+      ]
+    }
+  },
+  "architecture_patterns": {
+    "orchestrator": {
+      "type": "LangGraph with conditional routing",
+      "flow": "START → intent_detection → [meta_query OR workflow_invocation] → response_formatting → END",
+      "nodes": ["intent_detection", "handle_meta_query", "workflow_invocation", "response_formatting"],
+      "routing": "Conditional based on detected intent (meta vs workflow)",
+      "state_schema": "OrchestratorState (user_query, detected_intent, workflow_result, final_response)"
+    },
+    "workflows": {
+      "simple": {
+        "pattern": "Single agent → LLM call",
+        "nodes": 1,
+        "edges": "Linear"
+      },
+      "supervisor": {
+        "pattern": "Supervisor + workers with dynamic routing",
+        "nodes": 4,
+        "edges": "Conditional with loops"
+      },
+      "iterative": {
+        "pattern": "Loop with conditional continuation",
+        "nodes": 2,
+        "edges": "Conditional loop"
+      }
+    }
+  },
+  "development_workflow": {
+    "setup": [
+      "Run ./scripts/setup.sh OR manually setup with UV",
+      "Activate virtual environment",
+      "Install dependencies (production/dev/all)",
+      "Configure .env with API key",
+      "Install pre-commit hooks"
+    ],
+    "development": [
+      "Write code",
+      "Format with 'make format'",
+      "Lint with 'make lint'",
+      "Test with 'make test'",
+      "Commit (pre-commit hooks run automatically)"
+    ],
+    "testing": [
+      "Unit tests: pytest tests/test_workflows.py",
+      "Integration: pytest tests/test_orchestrator.py",
+      "Coverage: make test-cov",
+      "Via server: langgraph dev (http://localhost:2024/docs)"
+    ]
+  },
+  "production_roadmap": {
+    "phase1_infrastructure": {
+      "status": "in_progress",
+      "items": [
+        "POC orchestrator (✓)",
+        "Meta-query handling (✓)",
+        "Infrastructure directories (✓)",
+        "LangGraph skill (✓)",
+        "UV package manager (✓)",
+        "Docker containerization (planned)",
+        "Terraform for AWS/GCP (planned)",
+        "Kubernetes deployment (planned)"
+      ]
+    },
+    "phase2_api": {
+      "status": "planned",
+      "items": [
+        "FastAPI REST endpoints",
+        "WebSocket streaming",
+        "Authentication (API keys, JWT)",
+        "Rate limiting",
+        "Request validation"
+      ]
+    },
+    "phase3_persistence": {
+      "status": "planned",
+      "items": [
+        "PostgreSQL for workflow definitions",
+        "Redis for caching",
+        "S3 for artifacts",
+        "Conversation history",
+        "Checkpointing for long-running tasks"
+      ]
+    },
+    "phase4_observability": {
+      "status": "planned",
+      "items": [
+        "Structured logging (JSON)",
+        "Metrics (Prometheus)",
+        "Tracing (OpenTelemetry)",
+        "Dashboards (Grafana)",
+        "Alerting"
+      ]
+    },
+    "phase5_advanced": {
+      "status": "planned",
+      "items": [
+        "Hot-reload workflows",
+        "Workflow versioning",
+        "Multi-tenancy",
+        "Human-in-the-loop approvals",
+        "Async execution",
+        "Workflow chaining"
+      ]
+    }
+  },
+  "key_technologies": {
+    "core": {
+      "LangGraph": "Multi-agent orchestration framework",
+      "LangChain": "LLM integration library",
+      "Anthropic Claude": "LLM provider (Sonnet 4)"
+    },
+    "development": {
+      "UV": "Fast package manager (Rust-based)",
+      "Ruff": "Fast Python linter",
+      "Black": "Code formatter",
+      "mypy": "Static type checker",
+      "pytest": "Testing framework"
+    },
+    "planned": {
+      "FastAPI": "API framework",
+      "PostgreSQL": "Relational database",
+      "Redis": "Caching layer",
+      "Docker": "Containerization",
+      "Kubernetes": "Orchestration",
+      "Terraform": "Infrastructure as Code",
+      "Prometheus": "Metrics",
+      "OpenTelemetry": "Tracing"
+    }
+  },
+  "notes": {
+    "current_status": "POC proven, migrating to production-ready foundation",
+    "migration_path": "POC code in /core and /workflows will migrate to /src",
+    "package_manager": "UV for 10-100x faster installs",
+    "configuration": "Modern pyproject.toml instead of requirements.txt",
+    "code_quality": "Pre-commit hooks ensure consistency",
+    "testing": "Pytest with coverage reporting",
+    "documentation": "Comprehensive guides in /docs and skill in .claude/skills"
+  }
+}
