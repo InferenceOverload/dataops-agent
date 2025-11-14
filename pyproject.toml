@@ -102,7 +102,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src"]
+packages = ["core", "workflows", "infrastructure"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -112,7 +112,9 @@ python_functions = ["test_*"]
 addopts = [
     "-v",
     "--strict-markers",
-    "--cov=src",
+    "--cov=core",
+    "--cov=workflows",
+    "--cov=infrastructure",
     "--cov-report=term-missing",
     "--cov-report=html",
     "--cov-report=xml",
@@ -125,7 +127,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["src"]
+source = ["core", "workflows", "infrastructure"]
 omit = [
     "*/tests/*",
     "*/test_*.py",
@@ -167,7 +169,7 @@ ignore = [
 "tests/*" = ["S101"]
 
 [tool.ruff.isort]
-known-first-party = ["src"]
+known-first-party = ["core", "workflows", "infrastructure"]
 
 [tool.black]
 line-length = 100
@@ -190,7 +192,7 @@ extend-exclude = '''
 [tool.isort]
 profile = "black"
 line_length = 100
-known_first_party = ["src"]
+known_first_party = ["core", "workflows", "infrastructure"]
 skip_gitignore = true
 
 [tool.mypy]

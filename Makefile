@@ -29,13 +29,13 @@ help:
 	@echo "  make clean           Remove build artifacts and cache"
 
 install:
-	uv pip install -e .
+	uv pip install --system -e .
 
 install-dev:
-	uv pip install -e ".[dev]"
+	uv pip install --system -e ".[dev]"
 
 install-all:
-	uv pip install -e ".[all]"
+	uv pip install --system -e ".[all]"
 
 # Corporate environment setup
 corporate-setup:
@@ -46,7 +46,7 @@ test:
 	uv run pytest tests/ -v
 
 test-cov:
-	uv run pytest tests/ -v --cov=src --cov-report=html --cov-report=term
+	uv run pytest tests/ -v --cov=core --cov=workflows --cov=infrastructure --cov-report=html --cov-report=term
 
 test-unit:
 	uv run pytest tests/ -v -m unit
@@ -55,13 +55,13 @@ test-integration:
 	uv run pytest tests/ -v -m integration
 
 lint:
-	uv run ruff check src/ tests/
-	uv run mypy src/
+	uv run ruff check core/ workflows/ infrastructure/ tests/
+	uv run mypy core/ workflows/ infrastructure/
 
 format:
-	uv run black src/ tests/
-	uv run isort src/ tests/
-	uv run ruff check --fix src/ tests/
+	uv run black core/ workflows/ infrastructure/ tests/
+	uv run isort core/ workflows/ infrastructure/ tests/
+	uv run ruff check --fix core/ workflows/ infrastructure/ tests/
 
 pre-commit:
 	uv run pre-commit install

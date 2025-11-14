@@ -114,10 +114,27 @@ def _create_bedrock_llm(config: LLMConfig, **kwargs) -> ChatBedrock:
     Returns:
         ChatBedrock instance
     """
+    import boto3
+    import os
+
+    # Check if SSL verification should be disabled (corporate environment)
+    disable_ssl = os.getenv('PYTHONHTTPSVERIFY', '1') == '0' or os.getenv('CURL_CA_BUNDLE', None) == ''
+
+    # Create boto3 client with SSL configuration
+    client_kwargs = {
+        'service_name': 'bedrock-runtime',
+        'region_name': config.get_bedrock_region()
+    }
+
+    if disable_ssl:
+        client_kwargs['verify'] = False
+
+    bedrock_client = boto3.client(**client_kwargs)
+
     # Build parameters
     params = {
         "model_id": config.get_model(),
-        "region_name": config.get_bedrock_region(),
+        "client": bedrock_client,
         "model_kwargs": {
             "temperature": config.get_temperature(),
         },
