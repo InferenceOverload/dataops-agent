@@ -609,13 +609,14 @@ def response_formatting_node(state: OrchestratorState) -> dict:
             response_parts.append(json.dumps(output, indent=2))
     elif workflow_type == "oracle_package_analyzer":
         # Pretty print the Oracle Package Analyzer results
-        # The workflow returns the final state, which includes summary fields
+        # V2.0: Uses incremental S3 assembly, state only contains counts
         response_parts.append(f"\nAnalysis complete for: {workflow_result.get('root_package_name', 'Unknown')}")
         response_parts.append(f"Status: {workflow_result.get('status', 'unknown')}")
 
-        units_count = len(workflow_result.get('units', []))
-        packages_count = len(workflow_result.get('packages', []))
-        tables_count = len(workflow_result.get('tables', []))
+        # Get counts from state (v2.0 lightweight state)
+        units_count = workflow_result.get('units_count', 0)
+        packages_count = workflow_result.get('packages_count', 0)
+        tables_count = workflow_result.get('tables_count', 0)
 
         response_parts.append(f"\nDiscovered:")
         response_parts.append(f"  - {units_count} procedures/functions/views/triggers")
@@ -626,21 +627,8 @@ def response_formatting_node(state: OrchestratorState) -> dict:
         if artifact_uri:
             response_parts.append(f"\nKnowledge artifact stored at:")
             response_parts.append(f"  {artifact_uri}")
-
-        # Show a few sample units
-        units = workflow_result.get('units', [])
-        if units:
-            response_parts.append(f"\nSample units analyzed:")
-            for unit in units[:5]:  # Show first 5
-                unit_name = unit.get('qualified_name', 'Unknown')
-                unit_type = unit.get('unit_type', 'unknown')
-                summary = unit.get('summary', '')[:80]  # Truncate summary
-                response_parts.append(f"  - {unit_name} ({unit_type})")
-                if summary:
-                    response_parts.append(f"    {summary}...")
-
-            if len(units) > 5:
-                response_parts.append(f"  ... and {len(units) - 5} more")
+            response_parts.append(f"\nFull analysis results available in S3 artifact.")
+            response_parts.append(f"Artifact built incrementally with constant memory usage.")
     else:
         # For other workflows, convert output to string
         response_parts.append(str(output))
