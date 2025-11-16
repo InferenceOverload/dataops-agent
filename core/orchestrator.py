@@ -299,6 +299,13 @@ def workflow_invocation_node(state: OrchestratorState) -> dict:
             "max_iterations": extracted_params.get("max_iterations", 3),
             "output": {}
         }
+    elif workflow_name == "oracle_package_analyzer":
+        # Build from extracted parameters
+        workflow_input = {
+            "root_package_name": extracted_params.get("root_package_name", ""),
+            "max_depth": extracted_params.get("max_depth", 3),
+            "include_cross_schema": extracted_params.get("include_cross_schema", False)
+        }
     elif workflow_name == "simple":
         workflow_input = {
             "input": user_query,
@@ -552,7 +559,8 @@ def response_formatting_node(state: OrchestratorState) -> dict:
         "simple": "simple single-agent workflow",
         "supervisor": "multi-agent supervisor workflow",
         "iterative": "iterative refinement workflow",
-        "jil_parser": "JIL dependency parser workflow"
+        "jil_parser": "JIL dependency parser workflow",
+        "oracle_package_analyzer": "Oracle PL/SQL package analyzer workflow"
     }
     workflow_desc = workflow_descriptions.get(workflow_type, "workflow")
 
@@ -599,6 +607,40 @@ def response_formatting_node(state: OrchestratorState) -> dict:
         else:
             # Fallback to JSON formatting
             response_parts.append(json.dumps(output, indent=2))
+    elif workflow_type == "oracle_package_analyzer":
+        # Pretty print the Oracle Package Analyzer results
+        # The workflow returns the final state, which includes summary fields
+        response_parts.append(f"\nAnalysis complete for: {workflow_result.get('root_package_name', 'Unknown')}")
+        response_parts.append(f"Status: {workflow_result.get('status', 'unknown')}")
+
+        units_count = len(workflow_result.get('units', []))
+        packages_count = len(workflow_result.get('packages', []))
+        tables_count = len(workflow_result.get('tables', []))
+
+        response_parts.append(f"\nDiscovered:")
+        response_parts.append(f"  - {units_count} procedures/functions/views/triggers")
+        response_parts.append(f"  - {packages_count} packages")
+        response_parts.append(f"  - {tables_count} tables/views referenced")
+
+        artifact_uri = workflow_result.get('knowledge_artifact_uri', '')
+        if artifact_uri:
+            response_parts.append(f"\nKnowledge artifact stored at:")
+            response_parts.append(f"  {artifact_uri}")
+
+        # Show a few sample units
+        units = workflow_result.get('units', [])
+        if units:
+            response_parts.append(f"\nSample units analyzed:")
+            for unit in units[:5]:  # Show first 5
+                unit_name = unit.get('qualified_name', 'Unknown')
+                unit_type = unit.get('unit_type', 'unknown')
+                summary = unit.get('summary', '')[:80]  # Truncate summary
+                response_parts.append(f"  - {unit_name} ({unit_type})")
+                if summary:
+                    response_parts.append(f"    {summary}...")
+
+            if len(units) > 5:
+                response_parts.append(f"  ... and {len(units) - 5} more")
     else:
         # For other workflows, convert output to string
         response_parts.append(str(output))
