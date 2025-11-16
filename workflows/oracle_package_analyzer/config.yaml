@@ -1,0 +1,26 @@
+# Oracle Package Analyzer Workflow Configuration
+
+oracle:
+  # Environment variable name for default schema
+  default_schema_env_var: ORACLE_SCHEMA_DEFAULT
+
+storage:
+  # Environment variable name for S3 bucket
+  s3_bucket_env_var: ORACLE_CODE_S3_BUCKET
+
+  # S3 prefixes for different artifact types
+  raw_prefix: "oracle/raw"
+  knowledge_prefix: "oracle/knowledge"
+
+analysis:
+  # Default maximum recursion depth for dependency discovery
+  default_max_depth: 3
+
+  # Default setting for cross-schema dependency analysis
+  include_cross_schema_default: false
+
+  # LLM configuration for code analysis
+  llm_temperature: 0.0
+
+  # Maximum lines of code to analyze in a single LLM call
+  max_code_lines: 500
