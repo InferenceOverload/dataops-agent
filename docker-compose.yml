@@ -1,0 +1,131 @@
+# Docker Compose for Local Development
+
+version: '3.8'
+
+services:
+  # Main API service
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dataops-agent-api
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=development
+      - LLM_PROVIDER=${LLM_PROVIDER:-anthropic}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AGENTCORE_MEMORY_ID=${AGENTCORE_MEMORY_ID}
+      - DATABASE_URL=postgresql://dataops:localdev@postgres:5432/dataops
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./core:/app/core
+      - ./workflows:/app/workflows
+      - ./infrastructure:/app/infrastructure
+      - ./api:/app/api
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - dataops-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Chat UI service
+  chat-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+    container_name: dataops-agent-chat
+    ports:
+      - "8501:8501"
+    environment:
+      - API_URL=http://api:8000
+    depends_on:
+      - api
+    networks:
+      - dataops-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # PostgreSQL database
+  postgres:
+    image: postgres:15-alpine
+    container_name: dataops-agent-postgres
+    environment:
+      - POSTGRES_DB=dataops
+      - POSTGRES_USER=dataops
+      - POSTGRES_PASSWORD=localdev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - dataops-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dataops"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis cache
+  redis:
+    image: redis:7-alpine
+    container_name: dataops-agent-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - dataops-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MLflow tracking server (optional)
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.14.0
+    container_name: dataops-agent-mlflow
+    ports:
+      - "5000:5000"
+    environment:
+      - BACKEND_STORE_URI=postgresql://dataops:localdev@postgres:5432/mlflow
+      - DEFAULT_ARTIFACT_ROOT=/mlflow/artifacts
+    volumes:
+      - mlflow-artifacts:/mlflow/artifacts
+    depends_on:
+      - postgres
+    networks:
+      - dataops-network
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri postgresql://dataops:localdev@postgres:5432/mlflow
+      --default-artifact-root /mlflow/artifacts
+
+networks:
+  dataops-network:
+    driver: bridge
+    name: dataops-network
+
+volumes:
+  postgres-data:
+    name: dataops-postgres-data
+  redis-data:
+    name: dataops-redis-data
+  mlflow-artifacts:
+    name: dataops-mlflow-artifacts
