@@ -263,9 +263,160 @@ For large packages with 100+ procedures:
 
 ## Version
 
-- **Version**: 1.0.0
+- **Version**: 2.0.0
 - **Author**: Data Engineering Team
 - **Category**: Code Analysis
+
+## What's New in v2.0
+
+### Enhanced Analysis Capabilities
+
+1. **Deep Dependency Tracking**
+   - Extracts precise procedure-to-procedure calls (SCHEMA.PKG.PROC format)
+   - Builds complete call graphs showing all relationships
+   - Tracks both package-level and procedure-level dependencies
+
+2. **LLM-Powered Code Analysis**
+   - Column-level data lineage extraction
+   - Data transformation identification (calculations, joins, aggregations)
+   - Control flow analysis (loops, conditionals, exception handlers)
+   - Variable lineage tracking
+   - Intelligent migration hints
+
+3. **Recursive Procedure Analysis**
+   - When PROC1 calls PROC2, automatically analyzes PROC2
+   - Follows complete call chains to specified depth
+   - Prevents infinite loops with visited tracking
+
+4. **Local Testing Framework**
+   - Mock Oracle data sources for testing without database
+   - Sample PL/SQL packages demonstrating real-world patterns
+   - Comprehensive test suite
+   - Local testing script for quick validation
+
+### Architecture Improvements
+
+- **Code Analyzer Module** (`code_analyzer.py`): Dedicated LLM-powered analysis engine
+- **Recursive Task Queue**: Automatically discovers and analyzes called procedures
+- **Enhanced Artifact Structure**: Includes transformations, column lineage, control flow
+- **Fallback Analysis**: Regex-based extraction when LLM unavailable
+
+## Local Testing
+
+### Quick Test (No Database Required)
+
+Run the local test script to see the analyzer in action:
+
+```bash
+cd workflows/oracle_package_analyzer
+python local_test.py
+```
+
+This will:
+- Analyze mock PL/SQL package `BILLING.PKG_POLICY_BILLING`
+- Extract procedures, dependencies, and call graphs
+- Demonstrate LLM-powered analysis (if configured)
+- Show fallback regex-based analysis
+
+### Test All Mock Packages
+
+```bash
+python local_test.py --all
+```
+
+### Run Unit Tests
+
+```bash
+pytest tests/test_oracle_package_analyzer.py -v
+```
+
+### Available Mock Packages
+
+The testing framework includes these sample packages:
+- `BILLING.PKG_POLICY_BILLING` - Policy billing operations with late fees, payments
+- `BILLING.PKG_UTILS` - Utility procedures for logging
+- `NOTIFICATIONS.PKG_EMAIL` - Email notification system
+
+These demonstrate:
+- Cross-package procedure calls
+- Table read/write operations
+- Data transformations and calculations
+- Exception handling
+- Cursor usage
+
+## Migration from v1.0 to v2.0
+
+### Breaking Changes
+
+1. **UnitAnalysis Schema**
+   - Added `transformations` field (array of data transformation details)
+   - Enhanced `column_lineage` structure
+   - Added `cursors` to `control_flow`
+
+2. **Dependencies**
+   - Requires new `code_analyzer.py` module
+   - Enhanced LLM prompts for deeper analysis
+
+### Backward Compatibility
+
+Existing v1.0 artifacts can be read, but new v2.0 features won't be populated for old units.
+Re-run analysis to get enhanced insights.
+
+## Performance Considerations
+
+### LLM Usage
+
+v2.0 makes one LLM call per procedure analyzed. For large packages:
+- **100 procedures**: ~100 LLM calls
+- **Estimated cost**: $0.50 - $2.00 depending on model (Claude Sonnet)
+- **Time**: 2-5 minutes for 100 procedures
+
+### Optimization Tips
+
+1. **Adjust max_depth**: Lower depth = fewer procedures analyzed
+2. **Disable cross-schema**: Prevents explosion of dependencies
+3. **Use caching**: S3 caching prevents re-fetching package sources
+4. **Incremental assembly**: Constant memory usage regardless of size
+
+### Example Performance
+
+Package with 50 procedures, depth=2:
+- **Procedures analyzed**: ~50-150 (depending on call chains)
+- **LLM calls**: 50-150
+- **Time**: 3-8 minutes
+- **Cost**: $1-3 (Claude Sonnet)
+- **Memory**: Constant (~100MB)
+
+## Troubleshooting
+
+### LLM Analysis Failures
+
+If LLM analysis fails, the workflow automatically falls back to regex-based extraction:
+- Still extracts tables and basic calls
+- No column lineage or transformation details
+- Migration hints will be generic
+
+To debug LLM issues:
+1. Check `LLM_PROVIDER` environment variable
+2. Verify Bedrock/Anthropic credentials
+3. Check LLM model availability
+4. Review LLM temperature setting in config.yaml
+
+### Empty Call Graphs
+
+If procedure calls are missing:
+1. Verify procedure source is complete
+2. Check for dynamic SQL (can't be statically analyzed)
+3. Review LLM response for extraction errors
+4. Fallback regex has limited pattern matching
+
+### Missing Column Lineage
+
+Column lineage requires LLM analysis. If missing:
+1. Verify LLM is configured and working
+2. Check if procedure source is too complex
+3. Review LLM prompt in `code_analyzer.py`
+4. Consider simplifying procedure code
 
 ## License
 

@@ -31,6 +31,7 @@ from core.base_workflow import BaseWorkflow, WorkflowMetadata, WorkflowInputPara
 from infrastructure.storage.s3_operations import S3Operations
 from infrastructure.storage import oracle_operations
 from infrastructure.llm.llm_factory import create_llm
+from workflows.oracle_package_analyzer.code_analyzer import PLSQLCodeAnalyzer
 
 # Load environment variables
 load_dotenv()
@@ -198,15 +199,17 @@ class UnitAnalysis(TypedDict, total=False):
     qualified_name: str  # e.g. "BILLING.PKG_POLICY_BILLING.CALC_LATE_FEE"
     signature: Dict[str, Any]  # {"parameters": [...], "return_type": "..."}
 
-    reads_from: List[Dict[str, Any]]  # [{"table": "SCHEMA.TABLE", "columns": ["COL1"]}]
+    reads_from: List[Dict[str, Any]]  # [{"table": "SCHEMA.TABLE", "columns": ["COL1"], "operation": "SELECT"}]
     writes_to: List[Dict[str, Any]]  # Same structure as reads_from
 
-    column_lineage: List[Dict[str, Any]]  # [{"output": "col", "sources": [...], "expression": "..."}]
+    column_lineage: List[Dict[str, Any]]  # [{"output_column": "TARGET.COL", "source_columns": [...], "transformation": "...", "expression": "..."}]
     variable_lineage: List[Dict[str, Any]]  # Optional variable lineage
 
-    calls: List[str]  # Qualified names of called procedures/functions
+    calls: List[str]  # Qualified names of called procedures/functions (SCHEMA.PKG.PROC)
 
-    control_flow: Dict[str, Any]  # {"conditionals": int, "loops": int, "exceptions": [...]}
+    transformations: List[Dict[str, Any]]  # [{"type": "calculation/join/...", "description": "...", "input_data": [...], "output_data": [...]}]
+
+    control_flow: Dict[str, Any]  # {"conditionals": int, "loops": int, "exceptions": [...], "cursors": [...]}
 
     globals_used: List[str]  # List of global/package variables
 
@@ -269,6 +272,9 @@ class OraclePackageAnalyzerWorkflow(BaseWorkflow):
         # Initialize LLM with low temperature for deterministic analysis
         llm_temp = self.config.get('analysis', {}).get('llm_temperature', 0.0)
         self.llm = create_llm(temperature=llm_temp)
+
+        # Initialize code analyzer
+        self.code_analyzer = PLSQLCodeAnalyzer(llm_temperature=llm_temp)
 
         # S3 operations will be initialized per-invocation based on env var
         self._s3_ops = None
@@ -795,15 +801,21 @@ class OraclePackageAnalyzerWorkflow(BaseWorkflow):
 
         def analyze_unit(state: OracleAnalyzerState) -> Dict[str, Any]:
             """
-            Worker: Launch sub-agent to analyze individual procedure/view/trigger.
+            Worker: Analyze individual procedure/view/trigger with deep LLM-powered analysis.
 
-            This node uses sub-agents for context isolation per procedure.
+            Uses enhanced code analyzer to extract:
+            - Precise procedure calls
+            - Column-level lineage
+            - Data transformations
+            - Control flow
+
+            Recursively adds called procedures to the analysis queue.
 
             Args:
                 state: Current workflow state
 
             Returns:
-                State updates with unit analysis merged into S3
+                State updates with unit analysis merged into S3 and new tasks queued
             """
             current_task = state.get('current_task', {})
             task_type = current_task['task_type']
@@ -812,8 +824,12 @@ class OraclePackageAnalyzerWorkflow(BaseWorkflow):
             procedure = current_task.get('procedure')
             view_name = current_task.get('view_name')
             trigger_name = current_task.get('trigger_name')
+            depth = current_task.get('depth', 0)
 
-            # For procedures: use sub-agent pattern
+            max_depth = state.get('max_depth', 3)
+            include_cross_schema = state.get('include_cross_schema', False)
+
+            # For procedures: use enhanced code analyzer
             if task_type == "analyze_procedure" and procedure:
                 qualified_name = f"{schema}.{package}.{procedure}"
                 unit_type = "procedure"
@@ -826,51 +842,19 @@ class OraclePackageAnalyzerWorkflow(BaseWorkflow):
                 # Extract just this procedure's code
                 proc_source = extract_procedure_code(full_source, procedure)
 
-                # Use simple parsing for now (can be enhanced with sub-agent later)
-                # Sub-agent would go here in full implementation
-                parsed = parse_procedure_block(full_source, package, procedure)
-
-                # Use LLM to generate summary and migration hints
+                # Use enhanced LLM-powered analysis
                 try:
-                    prompt = f"""Analyze this Oracle {unit_type} and provide:
-1. A concise summary (2-3 sentences) of what it does
-2. A list of 2-4 migration hints for moving to Snowflake/cloud
+                    parsed = self.code_analyzer.analyze_procedure(
+                        schema, package, procedure, proc_source, full_source
+                    )
+                except Exception as e:
+                    # Fallback to basic parsing if analysis fails
+                    parsed = parse_procedure_block(full_source, package, procedure)
+                    parsed["summary"] = f"Analysis of {qualified_name}"
+                    parsed["migration_hints"] = ["Review required - automated analysis failed"]
 
-{unit_type.upper()}: {qualified_name}
-
-Source excerpt:
-{proc_source[:2000]}
-
-Respond in JSON format:
-{{
-  "summary": "...",
-  "migration_hints": ["hint1", "hint2", ...]
-}}
-"""
-                    response = self.llm.invoke(prompt)
-                    llm_output = response.content
-
-                    # Try to parse JSON from response
-                    try:
-                        # Extract JSON if wrapped in markdown
-                        if '```json' in llm_output:
-                            json_match = re.search(r'```json\s*(\{.*?\})\s*```', llm_output, re.DOTALL)
-                            if json_match:
-                                llm_data = json.loads(json_match.group(1))
-                            else:
-                                llm_data = {"summary": llm_output[:200], "migration_hints": []}
-                        else:
-                            llm_data = json.loads(llm_output)
-
-                        summary = llm_data.get('summary', '')
-                        migration_hints = llm_data.get('migration_hints', [])
-                    except json.JSONDecodeError:
-                        summary = llm_output[:200]
-                        migration_hints = []
-
-                except Exception:
-                    summary = f"Analysis of {unit_type} {qualified_name}"
-                    migration_hints = []
+                summary = parsed.get("summary", f"Analysis of {qualified_name}")
+                migration_hints = parsed.get("migration_hints", [])
 
             # For views: simpler analysis (no sub-agent needed)
             elif task_type == "analyze_view" and view_name:
@@ -884,7 +868,10 @@ Respond in JSON format:
                     migration_hints = ["Consider materializing as table in Snowflake for performance"]
                 except Exception:
                     # View not accessible
-                    return {"visited_units": state.get('visited_units', [])}
+                    return {
+                        "visited_units": state.get('visited_units', []),
+                        "todo_items": state.get('todo_items', [])
+                    }
 
             # For triggers: simpler analysis
             elif task_type == "analyze_trigger" and trigger_name:
@@ -898,10 +885,16 @@ Respond in JSON format:
                     migration_hints = ["Replace trigger with Snowflake stream/task pattern"]
                 except Exception:
                     # Trigger not accessible
-                    return {"visited_units": state.get('visited_units', [])}
+                    return {
+                        "visited_units": state.get('visited_units', []),
+                        "todo_items": state.get('todo_items', [])
+                    }
             else:
                 # Unknown task type - skip
-                return {"visited_units": state.get('visited_units', [])}
+                return {
+                    "visited_units": state.get('visited_units', []),
+                    "todo_items": state.get('todo_items', [])
+                }
 
             # Build UnitAnalysis
             new_unit: UnitAnalysis = {
@@ -910,10 +903,11 @@ Respond in JSON format:
                 "signature": parsed.get("signature", {}),
                 "reads_from": parsed.get("reads_from", []),
                 "writes_to": parsed.get("writes_to", []),
-                "column_lineage": [],
-                "variable_lineage": [],
+                "column_lineage": parsed.get("column_lineage", []),
+                "variable_lineage": parsed.get("variable_lineage", []),
                 "calls": parsed.get("calls", []),
-                "control_flow": {"conditionals": 0, "loops": 0, "exceptions": []},
+                "transformations": parsed.get("transformations", []),
+                "control_flow": parsed.get("control_flow", {"conditionals": 0, "loops": 0, "exceptions": []}),
                 "globals_used": parsed.get("globals_used", []),
                 "summary": summary,
                 "migration_hints": migration_hints
@@ -937,8 +931,62 @@ Respond in JSON format:
             new_visited = list(state.get('visited_units', []))
             new_visited.append(qualified_name)
 
+            # RECURSIVE ANALYSIS: Add called procedures to queue
+            new_todos = list(state.get('todo_items', []))
+
+            if depth + 1 <= max_depth:
+                for call in new_unit.get("calls", []):
+                    # Parse call: SCHEMA.PKG.PROC or PKG.PROC
+                    call_parts = call.split('.')
+
+                    if len(call_parts) == 3:
+                        # SCHEMA.PKG.PROC
+                        call_schema, call_pkg, call_proc = call_parts
+                    elif len(call_parts) == 2:
+                        # PKG.PROC - assume same schema
+                        call_schema = schema
+                        call_pkg, call_proc = call_parts
+                    else:
+                        # Just PROC - standalone procedure
+                        call_schema = schema
+                        call_pkg = None
+                        call_proc = call_parts[0]
+
+                    # Check cross-schema policy
+                    if call_schema.upper() != schema.upper() and not include_cross_schema:
+                        continue
+
+                    # Check if already visited or queued
+                    call_qualified = call.upper()
+                    if call_qualified in new_visited:
+                        continue
+
+                    # Check if already in queue
+                    already_queued = any(
+                        t.get('task_type') == 'analyze_procedure' and
+                        f"{t.get('schema')}.{t.get('package')}.{t.get('procedure')}".upper() == call_qualified
+                        for t in new_todos
+                    )
+
+                    if already_queued:
+                        continue
+
+                    # Add to queue
+                    if call_pkg:
+                        # Package procedure
+                        new_todos.append({
+                            "task_type": "analyze_procedure",
+                            "schema": call_schema,
+                            "package": call_pkg,
+                            "procedure": call_proc,
+                            "view_name": None,
+                            "trigger_name": None,
+                            "depth": depth + 1
+                        })
+
             return {
-                "visited_units": new_visited
+                "visited_units": new_visited,
+                "todo_items": new_todos
             }
 
         def finalize_knowledge(state: OracleAnalyzerState) -> Dict[str, Any]:
