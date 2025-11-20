@@ -8,7 +8,11 @@ This module uses oracledb (the modern successor to cx_Oracle) for database conne
 
 import os
 from typing import Optional
-import oracledb
+
+try:
+    import oracledb
+except ImportError:
+    oracledb = None  # Optional dependency for local testing
 
 
 def get_oracle_connection():

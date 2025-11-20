@@ -29,13 +29,13 @@ help:
 	@echo "  make clean           Remove build artifacts and cache"
 
 install:
-	uv pip install --system -e .
+	uv pip install -e .
 
 install-dev:
-	uv pip install --system -e ".[dev]"
+	uv pip install -e ".[dev]"
 
 install-all:
-	uv pip install --system -e ".[all]"
+	uv pip install -e ".[all]"
 
 # Corporate environment setup
 corporate-setup:

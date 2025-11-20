@@ -763,6 +763,14 @@ class OraclePackageAnalyzerWorkflow(BaseWorkflow):
             # Add dependent package tasks (if within depth limit)
             discovered_packages = []
             if depth + 1 <= max_depth:
+                # Oracle built-in packages to skip
+                oracle_builtins = {
+                    'DBMS_OUTPUT', 'DBMS_SQL', 'DBMS_LOB', 'DBMS_UTILITY',
+                    'UTL_FILE', 'UTL_HTTP', 'UTL_SMTP', 'UTL_TCP',
+                    'DBMS_LOCK', 'DBMS_RANDOM', 'DBMS_CRYPTO',
+                    'STANDARD', 'SYS', 'SYSTEM'
+                }
+
                 for dep_pkg in deps['packages']:
                     # Parse package reference
                     if '.' in dep_pkg:
@@ -770,6 +778,14 @@ class OraclePackageAnalyzerWorkflow(BaseWorkflow):
                     else:
                         dep_schema = schema  # Same schema
                         dep_pkg_name = dep_pkg
+
+                    # Skip Oracle built-ins
+                    if dep_pkg_name.upper() in oracle_builtins:
+                        continue
+
+                    # Skip if schema name same as package name (likely parsing error)
+                    if dep_schema.upper() == dep_pkg_name.upper():
+                        continue
 
                     # Check cross-schema policy
                     if dep_schema.upper() != schema.upper() and not include_cross_schema:
@@ -1054,7 +1070,12 @@ class OraclePackageAnalyzerWorkflow(BaseWorkflow):
         # Finalize ends the workflow
         graph.add_edge("finalize_knowledge", END)
 
-        return graph.compile()
+        return graph.compile(
+            checkpointer=False,
+            interrupt_before=None,
+            interrupt_after=None,
+            debug=False
+        )
 
 
 # For backwards compatibility - create instance and expose compiled graph
